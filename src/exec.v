@@ -1,10 +1,14 @@
 module exec (
     input wire clk,
     input wire rst_n,
+    input wire e_inp_rdy,
     input wire [31:0] f_instr,
+    output reg e_otp_rdy,
     output reg [31:0] f_pc,
     output reg [31:0] e_pc
 );  
+
+    wire m_done;
 
     wire [6:0] opcode = f_instr[6:0];
     wire [4:0] rd = f_instr[11:7];
@@ -14,16 +18,34 @@ module exec (
     wire [11:0] imm_s = {f_instr[31:25], f_instr[11:7]};
     wire [31:0] imm_b = {19'b0, f_instr[31], f_instr[7], f_instr[30:25], f_instr[11:8], 1'b0};
     wire [31:0] imm_u = f_instr[31:12];
-    wire [31:0] imm_j = {11'b0, f_instr[31], f_instr[19:12], f_instr[20], f_instr[30:21], 1'b0};
+    wire [31:0] imm_j = {f_instr[31], f_instr[19:12], f_instr[20], f_instr[30:21]};
     wire [2:0] funct3 = f_instr[14:12];
     wire [6:0] funct7 = f_instr[31:25];
 
-    reg [31:0] regfile [0:31];
+    reg [9:0] sram_addr;
+    reg [3:0] sram_wen;
+    wire [31:0] sram_read_data;
+
+    sram_4kb sram (
+        .a(sram_addr),
+        .wen(sram_wen),
+        .wd(rsrc2),
+        .clk(clk),
+        .m_inp_rdy(m_inp_rdy),
+        .m_otp_rdy(m_otp_rdy),
+        .rd(sram_read_data)
+    );
+
     wire [31:0] rsrc1 = regfile[rs1];
     wire [31:0] rsrc2 = regfile[rs2];
     reg [31:0] rdest;
     reg [31:0] e_pc_next;
 
+    wire [31:0] ram_addr_s = rsrc1 + {{20{imm_s[11]}}, imm_s};
+    wire [31:0] ram_addr_l = rsrc1 + {{20{imm_i[11]}}, imm_i};
+
+    // 31 registers
+    reg [31:0] regfile [0:31];
     wire [31:0] x1  = regfile[1];
     wire [31:0] x2  = regfile[2];
     wire [31:0] x3  = regfile[3];
@@ -55,20 +77,35 @@ module exec (
     wire [31:0] x29 = regfile[29];
     wire [31:0] x30 = regfile[30];
     wire [31:0] x31 = regfile[31];
+
+    reg e_clk_en;
+    reg m_inp_rdy;
+    wire m_otp_rdy;
+
+    reg e_otp_rdy_next;
     
     always @ (posedge clk or negedge rst_n) begin
         if (~rst_n) begin
             regfile[0] <= 32'h0;
             e_pc <= f_pc;
-        end else begin
+            e_otp_rdy <= 1'b1;
+        end else if (e_clk_en) begin
             regfile[rd] <= rdest;
             e_pc <= e_pc_next;
         end
     end
 
-    always @* begin // destination register logic
-        rdest = 32'b0;
+    always @* begin // destination register and exec stage program counter logic
+
+        e_j_flag = 1'b0;
+        e_clk_en = e_inp_rdy;
+        e_otp_rdy = e_inp_rdy;
+        m_inp_rdy = 1'b0;
+        rdest = regfile[rd];
         e_pc_next = f_pc;
+        sram_wen = 4'b0;
+        sram_addr = 10'bxxxxxxxxxx;
+
         casez (opcode)
             7'b0110011: begin // R-type
                 case (funct3)
@@ -129,9 +166,45 @@ module exec (
 
             7'b0z10111: begin // U-type
                 if (opcode[5]) // lui
-                    rdest[31:12] = imm_u; // lower 12 bits set to 0
-                else // auipc
+                    rdest = {imm_u, 12'b0}; // lower 12 bits set to 0
+                else // auipc TODO: test this command (not possible without very large jumps, with 100s of KBs of instruction data)
                     e_pc_next = f_pc + {imm_u, 12'b0}; // lower 12 bits treated as 0
+            end
+
+            7'b0100011: begin // S-type
+
+                sram_addr = ram_addr_s[9:0];
+                m_inp_rdy = 1'b1;
+
+                case (funct3)
+                    3'b000: // sb
+                        sram_wen = 4'b0001;
+                    3'b001: // sh
+                        sram_wen = 4'b0011;
+                    3'b010: // sw
+                        sram_wen = 4'b1111;
+                endcase
+            end
+
+            7'b0000011: begin // I-type loads
+
+                e_otp_rdy = e_inp_rdy && m_otp_rdy;
+                e_clk_en = e_inp_rdy && m_otp_rdy;
+                m_inp_rdy = 1'b1;
+                sram_addr = ram_addr_l[9:0];
+
+                case (funct3)
+                    3'b000: // lb
+                        rdest = {{24{sram_read_data[7]}}, sram_read_data[7:0]};
+                    3'b001: // lh
+                        rdest = {{16{sram_read_data[15]}}, sram_read_data[15:0]};
+                    3'b010: // lw
+                        rdest = sram_read_data;
+                    3'b100: // lbu
+                        rdest = {24'b0, sram_read_data[7:0]};
+                    3'b101: // lhu
+                        rdest = {24'b0, sram_read_data[15:0]};
+                endcase
             end
 
         endcase

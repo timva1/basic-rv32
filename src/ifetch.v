@@ -1,35 +1,39 @@
-module cpu_ifetch 
-#(
-    parameter RESET_VECTOR = 32'h0000_0000,
-    parameter INSTR_MEM_ADDR_WIDTH = 10
-)
-(
+module cpu_ifetch (
     input wire clk, 
     input wire rst_n,
-    output reg [31:0] f_instr, 
+    input wire i_inp_rdy,
+    output reg i_otp_rdy,
+    output wire [31:0] f_instr, 
     output reg [31:0] f_pc
 );  
 
-    localparam INSTR_MEM_SIZE = 1 << INSTR_MEM_ADDR_WIDTH;
-
     reg [31:0] i_pc;
-    reg [31:0] i_next_pc;
-    reg [31:0] instr_mem [0:INSTR_MEM_SIZE-1];
+    reg [31:0] i_pc_next;
+    
+    sram_4kb instr_mem (
+        .a(i_pc[11:2]),
+        .wd(32'b0),
+        .wen(4'b0),
+        .m_inp_rdy(i_inp_rdy),
+        .m_otp_rdy(),
+        .clk(clk),
+        .rd(f_instr)
+    );
 
     always @ (posedge clk, negedge rst_n) begin
         if (~rst_n) begin
             i_pc <= 32'h0;
-            f_instr <= 32'h13; // NOP
             f_pc <= 32'h0;
-        end else begin
-            i_pc <= i_next_pc;
-            f_instr <= instr_mem[i_pc[INSTR_MEM_ADDR_WIDTH + 1:2]];
+            i_otp_rdy <= 1'b0;
+        end else if (i_inp_rdy) begin
+            i_pc <= i_pc_next;
             f_pc <= i_pc;
-        end
+            i_otp_rdy <= 1'b1;
+        end 
     end
 
     always @* begin
-        i_next_pc = i_pc + 4;
+        i_pc_next = i_pc + 4;
     end
 
 endmodule

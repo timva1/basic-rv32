@@ -1,14 +1,15 @@
 ifetch_test:
 	mkdir -p bin/ifetch-test
 	mkdir -p waveforms/ifetch-test
-	iverilog -o bin/ifetch-test/ifetch_test src/ifetch_tb.v src/ifetch.v
+	iverilog -o bin/ifetch-test/ifetch_test src/ifetch_tb.v src/ifetch.v src/sram_4kb.v
 	vvp bin/ifetch-test/ifetch_test
 	gtkwave waveforms/ifetch-test/ifetch_test.vcd
 exec_test:
+	python3 src/init_sram.py
 	make bin_exec_test
 	mkdir -p bin/exec-test
 	mkdir -p waveforms/exec-test
-	iverilog -o bin/exec-test/exec_test src/exec_tb.v src/exec.v src/ifetch.v
+	iverilog -o bin/exec-test/exec_test src/exec_tb.v src/exec.v src/ifetch.v src/sram_4kb.v
 	vvp bin/exec-test/exec_test
 	gtkwave waveforms/exec-test/exec_test.vcd
 bin_exec_test:
