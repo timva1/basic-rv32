@@ -1,31 +1,31 @@
-    .section .text
+.section .text
     .org 0
     .globl _start
 _start:
-    /* init registers as necessary */
-    li x1, 0x0
-    li x2, 0x0
-    li x3, 0x0
-    li x4, 0x0
-    li x5, 0x0
-    li x6, 0x0
-    li x7, 0x0
-
-    /* test load operations */ 
-    lb x1, 0x0(x0)
-    lb x2, 0x1(x0)
-    lh x3, 0x2(x0)
-    lh x4, 0x3(x0)
-    lw x5, 0x4(x0)
-    lbu x6, 0x5(x0)
-    lhu x7, 0x6(x0)
-
-    sb x2, 0x8(x0)
-    sh x4, 0x9(x0)
-    sw x6, 0xA(x0)
-
-    addi x10, x0, 0x10
-    /* test store operations */ /* 
-    sb x1, 0x8(x0)
-    sh x2, 0x9(x0)
-    sw x3, 0xA(x0) */ 
+    sw x0, 0x0(x0)
+    sw x0, 0x4(x0)
+    sw x0, 0x8(x0)
+    sw x0, 0xC(x0)
+    sw x0, 0x10(x0)
+    sw x0, 0x14(x0)
+    sw x0, 0x18(x0)
+    sw x0, 0x1C(x0)
+    sw x0, 0x20(x0)
+    sw x0, 0x24(x0)
+    sw x0, 0x28(x0)
+    sw x0, 0x2C(x0)
+    sw x0, 0x30(x0)
+    sw x0, 0x34(x0)
+    sw x0, 0x38(x0)
+    li x31, 2000000
+    sw x31, 0x3C(x0)
+    
+    mul x11, x1, x2
+    mulh x12, x9, x10
+    mulhsu x13, x5, x6
+    mulhu x14, x6, x7
+    div x15, x11, x2
+    divu x16, x11, x5
+    rem x17, x11, x3
+    remu x18, x11, x3
+    ecall
