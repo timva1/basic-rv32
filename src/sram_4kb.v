@@ -3,20 +3,16 @@ module sram_4kb (
     input wire [31:0] wd,
     input wire [3:0] wen,
     input wire clk,
-    input wire m_inp_rdy,
-    output reg m_otp_rdy,
+    input wire cs,
     output reg [31:0] rd
 );
 
     reg [31:0] mem_array [0:1023];
-    wire m_clk_en = m_inp_rdy;
 
     always @ (posedge clk) begin
-        m_otp_rdy <= 1'b0;
-        if (m_clk_en)
+        if (cs)
             if (wen[3:0] == 4'b0000) begin
                 rd <= mem_array[a];
-                m_otp_rdy <= !m_otp_rdy;
             end else begin
                 mem_array[a][7 :0 ] <= wen[0] ? wd[7: 0 ] : mem_array[a][7 :0 ];
                 mem_array[a][15:8 ] <= wen[1] ? wd[15:8 ] : mem_array[a][15:8 ];

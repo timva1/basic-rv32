@@ -7,6 +7,9 @@
 
 contents = 1024 * [8 * "0"]
 
+# test ref value
+contents[0x10] = "133C82ED"
+
 # initial register values
 contents[0x11] = "00000001" # x1
 contents[0x12] = "00000002" # x2

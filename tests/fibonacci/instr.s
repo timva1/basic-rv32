@@ -35,45 +35,18 @@ _start:
     lw x30, 0xB8(x0)
     lw x31, 0xBC(x0)
 
-    /* perform tests */
-    /* test 1 */
-    add x31, x1, x2
-    sll x31, x31, x4
-    sw x31, 0x0(x0)
+    sw x1, 0(x0)
+    sw x2, 4(x0)
+    mv x3, x2
+    li x4, 8
+    li x5, 60
 
-    /* test 2 */
-    add x31, x10, x16
-    srl x31, x31, x4
-    sw x31, 0x4(x0)
+start_fib:
+    add x3, x1, x2
+    sw x3, 0(x4)
+    addi x4, x4, 4
+    mv x1, x2
+    mv x2, x3
+    ble x4, x5, start_fib
     
-    /* test 3 */
-    sra x31, x6, x1
-    sw x31, 0x8(x0)
-
-    /* test 4 */
-    sra x31, x13, x1
-    sw x31, 0xC(x0)
-
-    /* test 5 */
-    add x31, x3, x6
-    slli x31, x31, 0x17
-    sw x31, 0x10(x0)
-
-    /* test 6 */
-    slli x31, x3, 0x19
-    add x31, x31, x11
-    add x31, x31, x6
-    srli x31, x31, 0x5
-    sw x31, 0x14(x0)
-
-    /* test 7 */
-    srli x31, x10, 0x3
-    slli x30, x18, 0xF
-    sub x31, x31, x30
-    slli x31, x31, 0x3
-    srai x31, x31, 0x3
-    sw x31, 0x18(x0)
-
-    /* no more tests */
-
-    ecall
+    ebreak
