@@ -24,8 +24,6 @@ module exec (
     reg [31:0] rdest;
     reg [31:0] e_pc;
 
-    reg [63:0] mul_full_width;
-
     reg halted_next;
     reg e_valid_next;
     reg cs;
@@ -44,6 +42,49 @@ module exec (
         .wen(sram_wen),
         .cs(cs),
         .rd(sram_rd)
+    );
+
+    reg [31:0] adder_inp1;
+    reg [31:0] adder_inp2;
+    reg adder_neg;
+    wire [31:0] adder_out;
+
+    addsub #(32) adder (
+        .a(adder_inp1),
+        .b(adder_inp2),
+        .sub(adder_neg),
+        .q(adder_out)
+    );
+
+    reg [31:0] sll_data;
+    reg [4:0] sll_shift;
+    wire [31:0] sll_out;
+
+    sll #(5, 32) sll (
+        .a(sll_data),
+        .b(sll_shift),
+        .q(sll_out)
+    );
+
+    reg [31:0] srla_data;
+    reg [4:0] srla_shift;
+    reg srla_arith;
+    wire [31:0] srla_out;
+
+    srla #(5, 32) srla (
+        .a(srla_data),
+        .b(srla_shift),
+        .arith(srla_arith),
+        .q(srla_out)
+    );
+
+    reg [63:0] mul_out;
+
+    mul #(32) mul (
+        .a(rsrc1),
+        .b(rsrc2),
+        .s({&funct3[1:0], funct3[1]}),
+        .q(mul_out)
     );
 
     always @ (posedge clk, negedge rst_n) begin
@@ -80,6 +121,7 @@ module exec (
         sram_addr = 32'bx;
         rdest = regfile[rd];
         halted_next = 1'b0;
+		  mul_full_width = 64'b0;
 
         casez (opcode)
             7'b0110011: begin // R-type
